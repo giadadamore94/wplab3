@@ -1,0 +1,105 @@
+class Client {
+    constructor(username, password, num_client, society, contact, addres, zipcode, city, phone, fax, max_outstanding) {
+        this.username = username;
+        this.password = password;
+        this.num_client = num_client;
+        this.society = society;
+        this.contact = contact;
+        this.addres = addres;
+        this.zipcode = zipcode;
+        this.city = city;
+        this.phone = phone;
+        this.fax = fax;
+        this.max_outstanding = max_outstanding;
+    }
+}
+
+
+
+const loginControl = (request, response) => {
+    const clientServices = require('../services/clientServices');
+
+    let username = request.body.username;
+    let password = request.body.password;
+    if (!username || !password) {
+        // response.send('login failed');
+        response.render('loginFailed')
+    } else {
+        if (request.session && request.session.user) {
+            // response.send("Already logged in");
+            response.render('postLogin', {username: "User"});
+        } else {
+            clientServices.loginService(username, password, function(err, dberr, client) {
+                console.log("Client from login service :" + JSON.stringify(client));
+                if (client === null) {
+                    console.log("Auhtentication problem!");
+                    response.render('loginFailed');
+                    // response.send('login failed'); //invite to register
+                } else {
+                    console.log("User from login service :" + client[0].num_client);
+                    //add to session
+                    request.session.user = username;
+                    request.session.num_client = client[0].num_client;
+                    request.session.admin = false;
+                    // response.send(`Login (${username}, ID.${client[0].num_client}) successful!`);
+                    response.render('postLogin', {username: "User"});
+                }
+            });
+        }
+    }
+};
+
+
+const registerControl = (request, response) => {
+    const clientServices = require('../services/clientServices');
+
+    let username = request.body.username;
+    let password = request.body.password;
+    let society = request.body.society;
+    let contact = request.body.contact;
+    let addres = request.body.addres;
+    let zipcode = request.body.zipcode;
+    let city = request.body.city;
+    let phone = request.body.phone;
+    let fax = request.body.fax;
+    let max_outstanding = request.body.max_outstanding;
+    let client = new Client(username, password, 0, society, contact, addres, zipcode, city, phone, fax, max_outstanding);
+    console.log(password);
+    clientServices.registerService(client, function(err, exists, insertedID) {
+        console.log("User from register service :" + insertedID);
+        if (exists) {
+            console.log("Username taken!");
+            response.render('postRegister', { username: `registration failed. Username "${username}" already taken!` });
+            // response.send(`registration failed. Username (${username}) already taken!`); //invite to register
+        } else {
+            client.num_client = insertedID;
+            console.log(`Registration (${username}, ${insertedID}) successful!`);
+            response.render('postRegister', {username: `Successfull registration "${username}"` });
+        }
+        response.end();
+    });
+};
+
+const getClients = (request, response) => {
+    const clientServices = require('../services/clientServices');
+    clientServices.searchService(function(err, rows) {
+        response.json(rows);
+        response.end();
+    });
+};
+
+const getClientByNumclient = (request, response) => {
+    const clientServices = require('../services/clientServices');
+    let num_client = request.params.num_client;
+    clientServices.searchNumclientService(num_client, function(err, rows) {
+        response.json(rows);
+        response.end();
+    });
+};
+
+module.exports = {
+    loginControl,
+    registerControl,
+    getClients,
+    getClientByNumclient
+};
