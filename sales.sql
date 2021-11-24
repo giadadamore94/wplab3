@@ -18,7 +18,6 @@
 -- CREATE DATABASE IF NOT EXISTS sales;
 USE sql4453417;
 
-
 --
 -- Table structure for table `supplier`
 --
